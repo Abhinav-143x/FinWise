@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-ink-50 text-ink-900 font-sans;
+    min-height: 100dvh;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display;
+    letter-spacing: -0.02em;
+  }
+
+  input, select, textarea {
+    @apply outline-none;
+  }
+}
+
+@layer components {
+  /* Verdict badges */
+  .verdict-safe {
+    @apply bg-green-50 text-green-800 border border-green-200;
+  }
+  .verdict-caution {
+    @apply bg-amber-50 text-amber-800 border border-amber-200;
+  }
+  .verdict-risky {
+    @apply bg-red-50 text-red-800 border border-red-200;
+  }
+
+  /* Card base */
+  .card {
+    @apply bg-white rounded-2xl border border-ink-100 shadow-sm;
+  }
+
+  /* Form field */
+  .field {
+    @apply flex flex-col gap-1.5;
+  }
+
+  .field label {
+    @apply text-sm font-medium text-ink-700;
+  }
+
+  .field input,
+  .field select {
+    @apply w-full px-4 py-3 rounded-xl border border-ink-200 
+           bg-white text-ink-900 placeholder-ink-400
+           transition-all duration-150
+           focus:border-brand-500 focus:ring-2 focus:ring-brand-100;
+  }
+
+  .field .error {
+    @apply text-xs text-red-500;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-xl font-medium
+           bg-ink-900 text-white
+           hover:bg-ink-800 active:scale-[0.98]
+           transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2
+           px-6 py-3 rounded-xl font-medium
+           bg-white text-ink-800 border border-ink-200
+           hover:bg-ink-50 active:scale-[0.98]
+           transition-all duration-150;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2
+           px-4 py-2 rounded-lg text-sm font-medium
+           text-ink-600 hover:text-ink-900 hover:bg-ink-100
+           transition-all duration-150;
+  }
+
+  /* Animated list stagger helper */
+  .stagger-child {
+    opacity: 0;
+    animation: fadeUp 0.4s ease-out forwards;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { @apply bg-ink-200 rounded-full; }
