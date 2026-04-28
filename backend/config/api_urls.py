@@ -16,4 +16,7 @@ urlpatterns = [
 
     # Decisions (all engines)
     path("decisions/", include("apps.decisions.urls")),
+
+    # Currency rates + conversion
+    path("currency/", include("apps.common.urls")),
 ]

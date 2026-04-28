@@ -4,16 +4,13 @@ from .views import (
     GoalImpactView,
     SafeSpendView,
     DecisionHistoryView,
-    DecisionDetailView,
+    DecisionDetailDeleteView,
 )
 
 urlpatterns = [
-    # Engine endpoints
     path("affordability/", AffordabilityView.as_view(), name="decision-affordability"),
     path("goal-impact/", GoalImpactView.as_view(), name="decision-goal-impact"),
     path("safe-spend/", SafeSpendView.as_view(), name="decision-safe-spend"),
-
-    # History & detail
     path("history/", DecisionHistoryView.as_view(), name="decision-history"),
-    path("<uuid:pk>/", DecisionDetailView.as_view(), name="decision-detail"),
+    path("<uuid:pk>/", DecisionDetailDeleteView.as_view(), name="decision-detail"),
 ]
