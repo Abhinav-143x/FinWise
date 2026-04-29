@@ -1,17 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { TrendingUp, RefreshCw, ArrowRight, Target } from "lucide-react";
+import { TrendingUp, RefreshCw, ArrowRight, Target, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
-import { PageHeader, FormField, ResultCard, LoadingSpinner } from "@/components/ui";
-import CurrencySelect, { formatCurrency } from "@/components/ui/CurrencySelect";
+import { FormField, ResultCard, LoadingSpinner, PageHeader } from "@/components/ui";
+import CurrencySelect, { getCurrencySymbol } from "@/components/ui/CurrencySelect";
 import ProfileSetupBanner from "@/components/ui/ProfileSetupBanner";
 import { useProfile } from "@/hooks/useProfile";
 import api from "@/lib/api";
 import toast from "react-hot-toast";
 import clsx from "clsx";
-import { useEffect } from "react";
 
 const schema = z.object({
   purchase_amount: z.coerce
@@ -27,14 +26,11 @@ export default function GoalImpactPage() {
   const [submitting, setSubmitting] = useState(false);
 
   const activeCurrency = purchaseCurrency || profileCurrency;
-  const isDifferentCurrency = purchaseCurrency && purchaseCurrency !== profileCurrency;
+  const isDifferent = purchaseCurrency && purchaseCurrency !== profileCurrency;
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm({ resolver: zodResolver(schema) });
+  const { register, handleSubmit, reset, formState: { errors } } = useForm({
+    resolver: zodResolver(schema),
+  });
 
   useEffect(() => {
     if (!loading && !needsSetup) {
@@ -46,12 +42,16 @@ export default function GoalImpactPage() {
 
   const onSubmit = async ({ purchase_amount }) => {
     setSubmitting(true);
+    setResult(null);
     try {
       const { data } = await api.post("/decisions/goal-impact/", {
         purchase_amount,
         purchase_currency: activeCurrency,
       });
       setResult(data);
+      setTimeout(() => {
+        document.getElementById("result-anchor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     } catch (err) {
       const msg = err.response?.data?.error?.message
         || err.response?.data?.profile
@@ -62,142 +62,135 @@ export default function GoalImpactPage() {
     }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><LoadingSpinner /></div>;
+  if (loading) return <PageLoading />;
   if (needsSetup) return <ProfileSetupBanner />;
 
   return (
-    <div>
+    <div className="max-w-xl mx-auto">
       <PageHeader
         title="Goal Impact"
-        subtitle="See how a purchase affects your savings goals — using your saved profile."
+        subtitle="How does this purchase affect what you're saving for?"
       />
 
+      {/* No goals nudge */}
       {goals.length === 0 && (
-        <div className="card p-4 bg-blue-50 border-blue-200 mb-5 flex items-center justify-between">
+        <div className="card p-4 bg-blue-50 border-blue-200 mb-4 flex items-center justify-between animate-fade-in">
           <div>
-            <p className="font-semibold text-blue-900 text-sm">No active goals</p>
-            <p className="text-xs text-blue-700 mt-0.5">Add goals to see their impact</p>
+            <p className="text-sm font-semibold text-blue-900">No goals set up</p>
+            <p className="text-xs text-blue-600 mt-0.5">Add goals to see their impact — still works without them</p>
           </div>
-          <Link to="/goals" className="text-sm font-semibold text-blue-700 hover:underline">
-            Add goals →
+          <Link to="/goals" className="flex-shrink-0 flex items-center gap-1 text-sm font-semibold text-blue-700 hover:text-blue-900">
+            <Plus className="w-3.5 h-3.5" /> Add
           </Link>
         </div>
       )}
 
-      <div className="grid md:grid-cols-2 gap-6 items-start">
-        <form onSubmit={handleSubmit(onSubmit)} className="card p-6 space-y-5">
-          <FormField label="Purchase amount" error={errors.purchase_amount?.message}>
-            <div className="flex gap-2">
+      {/* Goals preview — compact */}
+      {goals.length > 0 && (
+        <div className="mb-4 animate-fade-in">
+          <p className="text-xs text-ink-400 mb-2">
+            Will check against {goals.length} goal{goals.length !== 1 ? "s" : ""}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {goals.map((g) => (
+              <div key={g.id} className="flex items-center gap-1.5 bg-white border border-ink-100 rounded-lg px-2.5 py-1">
+                <div className="w-12 h-1.5 bg-ink-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-brand-400 rounded-full"
+                    style={{ width: `${Math.min(g.progress_percent, 100)}%` }}
+                  />
+                </div>
+                <span className="text-xs text-ink-700 font-medium">{g.name}</span>
+                <span className="text-xs text-ink-400">{g.progress_percent}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Form */}
+      <form onSubmit={handleSubmit(onSubmit)} className="card p-6 space-y-4">
+        <div>
+          <label className="text-sm font-medium text-ink-700 block mb-1.5">
+            What does it cost?
+          </label>
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400 font-medium text-sm pointer-events-none">
+                {getCurrencySymbol(activeCurrency)}
+              </span>
               <input
                 type="number"
                 step="0.01"
                 min="0.01"
-                placeholder="e.g. 1200"
+                placeholder="0"
                 autoFocus
-                className="flex-1"
+                className="w-full pl-8 pr-4 py-3 rounded-xl border border-ink-200 bg-white text-ink-900
+                           focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all
+                           text-xl font-semibold"
                 {...register("purchase_amount")}
               />
-              <CurrencySelect
-                value={activeCurrency}
-                onChange={(c) => setPurchaseCurrency(c === profileCurrency ? null : c)}
-                className="w-36 flex-shrink-0"
-              />
             </div>
-          </FormField>
-
-          {isDifferentCurrency && (
-            <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2">
-              <ArrowRight className="w-3.5 h-3.5 flex-shrink-0" />
-              Amount converted from {purchaseCurrency} → {profileCurrency}
-            </div>
-          )}
-
-          {/* Goals preview */}
-          {goals.length > 0 && (
-            <div className="bg-ink-50 rounded-xl p-4">
-              <p className="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-3">
-                Will be checked against ({goals.length} goal{goals.length !== 1 ? "s" : ""})
-              </p>
-              <div className="space-y-2">
-                {goals.map((g) => (
-                  <div key={g.id} className="flex items-center justify-between text-sm">
-                    <span className="text-ink-700 truncate flex-1">{g.name}</span>
-                    <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                      <div className="w-16 h-1.5 bg-ink-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-brand-500 rounded-full"
-                          style={{ width: `${Math.min(g.progress_percent, 100)}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-ink-400 w-8 text-right">{g.progress_percent}%</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-3 pt-1">
-            <button type="submit" disabled={submitting} className="btn-primary flex-1 gap-2">
-              {submitting ? (
-                <><span className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin" />Analysing…</>
-              ) : (
-                <><TrendingUp className="w-4 h-4" />Check impact</>
-              )}
-            </button>
-            {result && (
-              <button type="button" onClick={() => { setResult(null); reset(); }} className="btn-secondary px-4">
-                <RefreshCw className="w-4 h-4" />
-              </button>
-            )}
+            <CurrencySelect
+              value={activeCurrency}
+              onChange={(c) => setPurchaseCurrency(c === profileCurrency ? null : c)}
+              className="w-28 flex-shrink-0"
+            />
           </div>
-        </form>
-
-        <div className="space-y-4">
-          {result ? (
-            <>
-              <ResultCard result={result} currency={result.currency} />
-              {result.goal_impacts?.length > 0 && <GoalImpactBreakdown impacts={result.goal_impacts} />}
-            </>
-          ) : (
-            <div className="card p-8 text-center border-dashed border-ink-200">
-              <TrendingUp className="w-10 h-10 text-ink-200 mx-auto mb-3" />
-              <p className="text-sm text-ink-400">Goal impact will appear here</p>
-            </div>
+          {errors.purchase_amount && (
+            <p className="text-xs text-red-500 mt-1">{errors.purchase_amount.message}</p>
+          )}
+          {isDifferent && (
+            <p className="text-xs text-blue-600 mt-1.5 flex items-center gap-1">
+              <ArrowRight className="w-3 h-3" />
+              Converted {purchaseCurrency} → {profileCurrency}
+            </p>
           )}
         </div>
+
+        <div className="flex gap-2 pt-1">
+          <button type="submit" disabled={submitting} className="btn-primary flex-1">
+            {submitting
+              ? <><Spinner />Checking…</>
+              : <><TrendingUp className="w-4 h-4" />Check goal impact</>
+            }
+          </button>
+          {result && (
+            <button
+              type="button"
+              onClick={() => { setResult(null); reset(); }}
+              className="btn-secondary px-4"
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+      </form>
+
+      {/* Result */}
+      <div id="result-anchor" className="mt-4">
+        {submitting && (
+          <div className="card p-8 flex items-center justify-center gap-3">
+            <LoadingSpinner />
+            <p className="text-sm text-ink-500">Checking your goals…</p>
+          </div>
+        )}
+        {result && !submitting && (
+          <ResultCard
+            result={result}
+            currency={result.currency}
+            goalImpacts={result.goal_impacts}
+          />
+        )}
       </div>
     </div>
   );
 }
 
-function GoalImpactBreakdown({ impacts }) {
-  const labelStyle = {
-    minimal: "text-green-700 bg-green-50 border-green-200",
-    moderate: "text-amber-700 bg-amber-50 border-amber-200",
-    significant: "text-red-700 bg-red-50 border-red-200",
-  };
-  return (
-    <div className="card p-5 animate-fade-up">
-      <h3 className="text-xs font-semibold text-ink-400 uppercase tracking-wider mb-4">Per Goal</h3>
-      <div className="space-y-3">
-        {impacts.map((imp) => (
-          <div key={imp.goal_id} className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-sm font-medium text-ink-800 truncate">{imp.goal_name}</p>
-              {imp.delay_months > 0 && (
-                <p className="text-xs text-ink-400">~{imp.delay_months} month delay</p>
-              )}
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className="text-xs text-ink-400">{imp.impact_pct}%</span>
-              <span className={clsx("text-xs font-semibold px-2 py-0.5 rounded-full border", labelStyle[imp.impact_label])}>
-                {imp.impact_label}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
+function PageLoading() {
+  return <div className="flex justify-center items-center py-20"><LoadingSpinner size="lg" /></div>;
+}
+
+function Spinner() {
+  return <span className="w-4 h-4 border border-white border-t-transparent rounded-full animate-spin" />;
 }
